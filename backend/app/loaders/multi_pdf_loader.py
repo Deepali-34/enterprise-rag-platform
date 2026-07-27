@@ -1,6 +1,6 @@
 from pathlib import Path
 from langchain_community.document_loaders import PyMuPDFLoader
-def load_all_pdfs(pdf_folder: Path):
+def load_multiple_pdfs(pdf_folder: Path):
     all_documents = []
 
     pdf_files = list(pdf_folder.glob("*.pdf"))
@@ -25,7 +25,7 @@ def load_all_pdfs(pdf_folder: Path):
 def main():
     pdf_folder = Path("sample_documents")
 
-    documents = load_all_pdfs(pdf_folder)
+    documents = load_multiple_pdfs(pdf_folder)
 
     print("\n" + "=" * 60)
     print("All PDFs Loaded Successfully")
