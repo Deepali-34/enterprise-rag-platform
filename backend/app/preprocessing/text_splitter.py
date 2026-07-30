@@ -1,11 +1,14 @@
 from pathlib import Path
+from datetime import datetime
+import uuid
+
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from app.loaders.multi_pdf_loader import load_multiple_pdfs
 
 
 def split_documents(documents):
     """
-    Split LangChain documents into smaller chunks.
+    Split LangChain documents into smaller chunks and enrich metadata.
     """
 
     splitter = RecursiveCharacterTextSplitter(
@@ -17,12 +20,33 @@ def split_documents(documents):
 
     chunks = splitter.split_documents(documents)
 
+    upload_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    for index, chunk in enumerate(chunks):
+
+        metadata = chunk.metadata
+
+        source = metadata.get("source", "")
+
+        filename = Path(source).name if source else "Unknown"
+
+        extension = Path(filename).suffix.lower()
+
+        chunk.metadata.update({
+            "filename": filename,
+            "document_type": extension.replace(".", ""),
+            "chunk_number": index + 1,
+            "chunk_id": str(uuid.uuid4()),
+            "upload_timestamp": upload_time,
+            "page_number": metadata.get("page", 1)
+        })
+
     return chunks
 
 
 def main():
-    # Load all PDFs
     pdf_folder = Path("sample_documents")
+
     documents = load_multiple_pdfs(pdf_folder)
 
     print("=" * 60)
@@ -31,7 +55,6 @@ def main():
 
     print(f"Total Pages Loaded : {len(documents)}")
 
-    # Split into chunks
     chunks = split_documents(documents)
 
     print(f"Total Chunks Created : {len(chunks)}")
