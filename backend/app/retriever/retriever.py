@@ -1,25 +1,14 @@
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+from pathlib import Path
 
-embedding_model = HuggingFaceEmbeddings(
-    model_name="sentence-transformers/all-MiniLM-L6-v2"
-)
-
-vector_db = Chroma(
-    persist_directory="chroma_storage",
-    embedding_function=embedding_model
-)
-
-retriever = vector_db.as_retriever(
-    search_kwargs={"k": 3}
-)
+from app.retriever.hybrid_retriever import hybrid_search
 
 
 def search_documents(query: str):
+    """
+    Perform Hybrid Search (Dense + BM25).
+    """
 
-    results = retriever.invoke(query)
-
-    return results
+    return hybrid_search(query)
 
 
 def main():
@@ -29,17 +18,27 @@ def main():
     results = search_documents(query)
 
     print("\n" + "=" * 60)
-    print("Top Matching Chunks")
+    print("Hybrid Search Results")
     print("=" * 60)
 
     for i, doc in enumerate(results, start=1):
 
         print(f"\nResult {i}")
         print("-" * 40)
-        print(f"Source : {doc.metadata['source']}")
+
+        source = doc.metadata.get("source", "Unknown")
+        filename = Path(source).name
+
+        page = doc.metadata.get(
+            "page",
+            doc.metadata.get("page_number", 0)
+        ) + 1
+
+        print(f"File : {filename}")
+        print(f"Page : {page}")
+
         print("\nContent:\n")
         print(doc.page_content[:500])
-        print()
 
 
 if __name__ == "__main__":

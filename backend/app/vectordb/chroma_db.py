@@ -3,6 +3,7 @@ from collections import Counter
 
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_core.documents import Document
 
 from app.loaders.multi_pdf_loader import load_multiple_pdfs
 from app.preprocessing.text_splitter import split_documents
@@ -58,6 +59,35 @@ def add_documents(documents):
     db.add_documents(chunks)
 
     return len(chunks)
+
+
+def get_all_documents():
+    """
+    Return all indexed documents from ChromaDB.
+    Required for BM25 retrieval.
+    """
+
+    db = get_vector_db()
+
+    data = db.get(include=["documents", "metadatas"])
+
+    if not data:
+        return []
+
+    documents = []
+
+    for content, metadata in zip(
+        data.get("documents", []),
+        data.get("metadatas", [])
+    ):
+        documents.append(
+            Document(
+                page_content=content,
+                metadata=metadata or {}
+            )
+        )
+
+    return documents
 
 
 def list_documents():
