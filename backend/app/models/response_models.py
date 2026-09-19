@@ -1,3 +1,5 @@
+from typing import List
+
 from pydantic import BaseModel
 
 
@@ -9,4 +11,4 @@ class Source(BaseModel):
 class QuestionResponse(BaseModel):
     question: str
     answer: str
-    sources: list[Source]
+    sources: List[Source]
