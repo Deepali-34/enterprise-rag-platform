@@ -7,19 +7,28 @@ from app.models.response_models import QuestionResponse
 from app.utils.logger import logger
 from app.uploader.upload_service import upload_pdf
 
+
 app = FastAPI(
     title="Enterprise RAG Platform",
     description="AI-powered document question answering system",
     version="1.0.0",
 )
 
-# Register Document Management API
+
+# ============================================================
+# Document Management API
+# ============================================================
+
 app.include_router(upload_router)
 
 
 class QuestionRequest(BaseModel):
     question: str
 
+
+# ============================================================
+# Root Endpoint
+# ============================================================
 
 @app.get("/")
 def root():
@@ -31,16 +40,29 @@ def root():
     }
 
 
-@app.post("/ask", response_model=QuestionResponse)
+# ============================================================
+# Ask Question API
+# ============================================================
+
+@app.post(
+    "/ask",
+    response_model=QuestionResponse
+)
 def ask_question(request: QuestionRequest):
 
-    logger.info(f"Question: {request.question}")
+    logger.info(
+        f"Question: {request.question}"
+    )
 
     try:
 
-        result = ask_rag(request.question)
+        result = ask_rag(
+            request.question
+        )
 
-        logger.info("Answer generated successfully.")
+        logger.info(
+            "Answer generated successfully."
+        )
 
         return QuestionResponse(
             question=request.question,
@@ -50,7 +72,10 @@ def ask_question(request: QuestionRequest):
 
     except Exception as e:
 
-        logger.exception("Error while processing question")
+        logger.error(
+            "Error while processing question",
+            exc_info=True
+        )
 
         raise HTTPException(
             status_code=500,
@@ -58,14 +83,22 @@ def ask_question(request: QuestionRequest):
         )
 
 
+# ============================================================
+# Upload Document API
+# ============================================================
+
 @app.post("/upload")
-def upload_document(file: UploadFile = File(...)):
+def upload_document(
+    file: UploadFile = File(...)
+):
 
     try:
 
         result = upload_pdf(file)
 
-        logger.info(f"Uploaded: {file.filename}")
+        logger.info(
+            f"Uploaded: {file.filename}"
+        )
 
         return {
             "message": "Document indexed successfully",
@@ -75,7 +108,10 @@ def upload_document(file: UploadFile = File(...)):
 
     except Exception as e:
 
-        logger.exception("Upload failed")
+        logger.error(
+            "Error while uploading document",
+            exc_info=True
+        )
 
         raise HTTPException(
             status_code=500,

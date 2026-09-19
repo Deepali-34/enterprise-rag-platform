@@ -1,41 +1,59 @@
-from pathlib import Path
-
 from app.retriever.retriever import search_documents
 from app.llm.gemini_llm import llm
 
 
 def build_context(documents):
     """
-    Build context from retrieved documents.
+    Build structured context from retrieved documents.
     """
 
-    context = ""
+    context_parts = []
 
-    for doc in documents:
-        context += doc.page_content
-        context += "\n\n"
+    for index, doc in enumerate(documents, start=1):
 
-    return context
+        metadata = doc.metadata or {}
+
+        source = metadata.get("source", "Unknown")
+        page = metadata.get("page", "Unknown")
+
+        context_parts.append(
+            f"""
+SOURCE {index}
+Filename: {source}
+Page: {page}
+
+Content:
+{doc.page_content}
+"""
+        )
+
+    return "\n".join(context_parts)
 
 
 def create_prompt(context, question):
     """
-    Create prompt for Gemini.
+    Create the grounded RAG prompt.
     """
 
     prompt = f"""
-You are an AI assistant.
+You are an AI assistant for an Enterprise RAG Platform.
 
-Answer the question ONLY using the context below.
+Answer the user's question ONLY using the retrieved document context.
 
-If the answer is not present in the context, say:
+Rules:
+1. Use only the provided context.
+2. If the answer is present in the context, answer clearly.
+3. Do not use outside knowledge.
+4. Do not claim information is unavailable if the context contains
+   relevant information.
+5. If the information genuinely cannot be found, say:
+   "I could not find that information in the provided documents."
+6. Give a concise and useful answer.
 
-"I could not find that information in the provided documents."
-
-Context:
+Retrieved Document Context:
 {context}
 
-Question:
+User Question:
 {question}
 
 Answer:
@@ -44,59 +62,56 @@ Answer:
     return prompt
 
 
-def extract_sources(documents):
-    """
-    Extract unique document sources.
-    """
-
-    unique_sources = {}
-
-    for doc in documents:
-
-        metadata = doc.metadata
-
-        # Use enriched filename if available
-        source = metadata.get(
-            "filename",
-            metadata.get("source", "Unknown")
-        )
-
-        filename = Path(source).name
-
-        # Convert page number to human-readable format
-        page = metadata.get(
-            "page_number",
-            metadata.get("page", 0)
-        ) + 1
-
-        key = (filename, page)
-
-        if key not in unique_sources:
-            unique_sources[key] = {
-                "filename": filename,
-                "page": page
-            }
-
-    return list(unique_sources.values())
-
-
 def ask_rag(question):
     """
-    Enterprise RAG Pipeline
+    Complete RAG pipeline.
+
+    Question
+        ↓
+    Multi-Query Retrieval
+        ↓
+    Hybrid Search
+        ↓
+    Context Construction
+        ↓
+    Gemini
+        ↓
+    Answer + Sources
     """
 
     documents = search_documents(question)
 
     context = build_context(documents)
 
-    prompt = create_prompt(context, question)
+    prompt = create_prompt(
+        context=context,
+        question=question
+    )
 
     response = llm.invoke(prompt)
 
-    sources = extract_sources(documents)
+    # Current LangChain API
+    answer = response.text
+
+    sources = []
+
+    for doc in documents:
+
+        metadata = doc.metadata or {}
+
+        source = metadata.get("source", "Unknown")
+        page = metadata.get("page", 0)
+
+        source_info = {
+            "filename": source,
+            "page": page
+        }
+
+        if source_info not in sources:
+            sources.append(source_info)
 
     return {
-        "answer": response.text(),
+        "answer": answer,
         "sources": sources
     }
 
@@ -107,7 +122,11 @@ def main():
     print("Enterprise RAG Platform")
     print("=" * 60)
 
-    question = input("\nAsk a question: ")
+    question = input("\nAsk a question: ").strip()
+
+    if not question:
+        print("Question cannot be empty.")
+        return
 
     result = ask_rag(question)
 
@@ -122,7 +141,11 @@ def main():
     print("=" * 60)
 
     for source in result["sources"]:
-        print(f"{source['filename']} (Page {source['page']})")
+
+        print(
+            f"- {source['filename']} "
+            f"(Page {source['page']})"
+        )
 
 
 if __name__ == "__main__":

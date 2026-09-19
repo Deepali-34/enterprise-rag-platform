@@ -1,41 +1,53 @@
-from pathlib import Path
-
-from app.retriever.hybrid_retriever import hybrid_search
+from app.retriever.multi_query_retriever import multi_query_search
 
 
 def search_documents(query: str):
     """
-    Perform Hybrid Search (Dense + BM25).
+    Search the knowledge base using Multi-Query Retrieval.
+
+    Multi-Query Retrieval generates multiple variations of the
+    user's query and sends each query through the Hybrid Search
+    pipeline.
     """
 
-    return hybrid_search(query)
+    return multi_query_search(
+        question=query,
+        k=5
+    )
 
 
 def main():
 
-    query = input("Enter your question: ")
+    query = input("Enter your question: ").strip()
+
+    if not query:
+        print("Question cannot be empty.")
+        return
 
     results = search_documents(query)
 
     print("\n" + "=" * 60)
-    print("Hybrid Search Results")
+    print("Multi-Query Retrieved Chunks")
     print("=" * 60)
 
+    print(f"\nTotal Results: {len(results)}")
+
     for i, doc in enumerate(results, start=1):
+
+        metadata = doc.metadata or {}
 
         print(f"\nResult {i}")
         print("-" * 40)
 
-        source = doc.metadata.get("source", "Unknown")
-        filename = Path(source).name
+        print(
+            f"Source : "
+            f"{metadata.get('source', 'Unknown')}"
+        )
 
-        page = doc.metadata.get(
-            "page",
-            doc.metadata.get("page_number", 0)
-        ) + 1
-
-        print(f"File : {filename}")
-        print(f"Page : {page}")
+        print(
+            f"Page   : "
+            f"{metadata.get('page', 'Unknown')}"
+        )
 
         print("\nContent:\n")
         print(doc.page_content[:500])

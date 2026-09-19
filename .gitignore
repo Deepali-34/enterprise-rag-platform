@@ -49,3 +49,6 @@ chroma_db/
 
 # Docker
 *.pid
+# ChromaDB
+chroma_db/
+backend/chroma_storage/
