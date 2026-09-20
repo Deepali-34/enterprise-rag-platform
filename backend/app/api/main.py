@@ -24,6 +24,7 @@ app.include_router(upload_router)
 
 class QuestionRequest(BaseModel):
     question: str
+    session_id: str = "default"
 
 
 # ============================================================
@@ -51,13 +52,15 @@ def root():
 def ask_question(request: QuestionRequest):
 
     logger.info(
-        f"Question: {request.question}"
+        f"Question: {request.question} | "
+        f"Session: {request.session_id}"
     )
 
     try:
 
         result = ask_rag(
-            request.question
+            question=request.question,
+            session_id=request.session_id
         )
 
         logger.info(
