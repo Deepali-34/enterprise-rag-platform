@@ -1,20 +1,16 @@
 from typing import List
 
 from langchain_core.documents import Document
-
 from app.embeddings.embedding_generator import model
 
 
-# Maximum number of documents allowed after compression
 DEFAULT_MAX_DOCUMENTS = 3
-
-# Minimum semantic similarity required
 DEFAULT_MIN_SCORE = 0.35
 
 
 def cosine_similarity(vector_a, vector_b):
     """
-    Calculate cosine similarity between two embedding vectors.
+    Calculate cosine similarity between two vectors.
     """
 
     dot_product = sum(
@@ -32,7 +28,9 @@ def cosine_similarity(vector_a, vector_b):
     if magnitude_a == 0 or magnitude_b == 0:
         return 0.0
 
-    return dot_product / (magnitude_a * magnitude_b)
+    return dot_product / (
+        magnitude_a * magnitude_b
+    )
 
 
 def compress_documents(
@@ -42,14 +40,15 @@ def compress_documents(
     min_score: float = DEFAULT_MIN_SCORE
 ):
     """
-    Compress retrieved documents using semantic similarity.
+    Compress retrieved documents by semantic similarity.
 
-    Process:
-        1. Generate an embedding for the question.
-        2. Generate embeddings for retrieved chunks.
-        3. Calculate cosine similarity.
-        4. Remove low-relevance chunks.
-        5. Keep the highest-scoring chunks.
+    The documents are ranked using cosine similarity between
+    the question embedding and each document embedding.
+
+    Important:
+    If no document reaches the minimum similarity threshold,
+    the highest-scoring documents are still retained so that
+    the RAG pipeline does not incorrectly return an empty result.
     """
 
     if not documents:
@@ -59,9 +58,7 @@ def compress_documents(
     # Generate question embedding
     # ---------------------------------------------------------
 
-    question_embedding = model.encode(
-        question
-    )
+    question_embedding = model.encode(question)
 
     # ---------------------------------------------------------
     # Generate document embeddings
@@ -101,11 +98,11 @@ def compress_documents(
         )
 
         scored_documents.append(
-            (document, score)
+            (document, float(score))
         )
 
     # ---------------------------------------------------------
-    # Rank by semantic relevance
+    # Sort by similarity
     # ---------------------------------------------------------
 
     scored_documents.sort(
@@ -114,79 +111,58 @@ def compress_documents(
     )
 
     # ---------------------------------------------------------
-    # Keep only relevant documents
+    # First try the minimum similarity threshold
     # ---------------------------------------------------------
 
-    compressed_documents = []
-
-    for document, score in scored_documents:
-
-        if score < min_score:
-            continue
-
-        compressed_documents.append(document)
-
-        if len(compressed_documents) >= max_documents:
-            break
-
-    return compressed_documents
-
-
-def main():
-
-    print("=" * 70)
-    print("Enterprise RAG Platform")
-    print("Advanced RAG - Context Compression")
-    print("=" * 70)
-
-    question = input("\nEnter your question: ").strip()
-
-    if not question:
-        print("Question cannot be empty.")
-        return
-
-    # Import here to keep the retrieval pipeline separate
-    from app.retriever.multi_query_retriever import multi_query_search
+    filtered_documents = [
+        (document, score)
+        for document, score in scored_documents
+        if score >= min_score
+    ]
 
     # ---------------------------------------------------------
-    # Multi-Query + Hybrid Retrieval
+    # Robust fallback
+    #
+    # If every document falls below the threshold, keep the
+    # highest-scoring documents instead of returning zero.
+    #
+    # The cross-encoder re-ranker will perform another,
+    # stronger relevance evaluation afterwards.
     # ---------------------------------------------------------
 
-    print("\nRunning Multi-Query + Hybrid Retrieval...")
+    if not filtered_documents:
+        print(
+            "[COMPRESSION] No documents reached "
+            f"minimum score {min_score}. "
+            "Keeping highest-scoring candidates."
+        )
 
-    documents = multi_query_search(
-        question=question,
-        k=5
-    )
+        filtered_documents = scored_documents[
+            :max_documents
+        ]
+
+    # ---------------------------------------------------------
+    # Keep only the configured number of documents
+    # ---------------------------------------------------------
+
+    compressed_documents = [
+        document
+        for document, score in filtered_documents[
+            :max_documents
+        ]
+    ]
+
+    # ---------------------------------------------------------
+    # Debug information
+    # ---------------------------------------------------------
 
     print(
-        f"\nRetrieved documents before compression: "
+        f"[COMPRESSION] Input documents: "
         f"{len(documents)}"
     )
 
-    # ---------------------------------------------------------
-    # Context Compression
-    # ---------------------------------------------------------
-
-    print("\nRunning Context Compression...")
-
-    compressed_documents = compress_documents(
-        question=question,
-        documents=documents,
-        max_documents=3,
-        min_score=DEFAULT_MIN_SCORE
-    )
-
-    # ---------------------------------------------------------
-    # Display results
-    # ---------------------------------------------------------
-
-    print("\n" + "=" * 70)
-    print("Compressed Context")
-    print("=" * 70)
-
     print(
-        f"Documents after compression: "
+        f"[COMPRESSION] Output documents: "
         f"{len(compressed_documents)}"
     )
 
@@ -197,27 +173,11 @@ def main():
 
         metadata = document.metadata or {}
 
-        print(f"\nResult {index}")
-        print("-" * 50)
-
         print(
-            f"Source : "
-            f"{metadata.get('source', 'Unknown')}"
+            f"[COMPRESSION] Document {index}: "
+            f"{metadata.get('filename', 'Unknown')} | "
+            f"score="
+            f"{metadata.get('compression_score', 'N/A')}"
         )
 
-        print(
-            f"Page   : "
-            f"{metadata.get('page', 'Unknown')}"
-        )
-
-        print(
-            f"Compression Score : "
-            f"{metadata.get('compression_score', 0)}"
-        )
-
-        print("\nContent:")
-        print(document.page_content[:500])
-
-
-if __name__ == "__main__":
-    main()
+    return compressed_documents
