@@ -12,7 +12,7 @@ FALLBACK_MESSAGE = (
 
 def build_context(documents) -> str:
     """
-    Convert retrieved LangChain documents into structured context.
+    Build the document context that will be provided to the LLM.
     """
 
     if not documents:
@@ -21,12 +21,10 @@ def build_context(documents) -> str:
     context_parts = []
 
     for index, doc in enumerate(documents, start=1):
-
         metadata = doc.metadata or {}
 
         source = metadata.get("source", "Unknown")
         page = metadata.get("page", "Unknown")
-
         content = doc.page_content.strip()
 
         if not content:
@@ -52,19 +50,16 @@ def create_prompt(
     conversation_history: str = ""
 ) -> str:
     """
-    Create the final source-grounded conversational prompt.
+    Create the document-grounded prompt used by Gemini.
     """
 
     if conversation_history:
-
         history_section = f"""
 PREVIOUS CONVERSATION:
 
 {conversation_history}
 """
-
     else:
-
         history_section = """
 PREVIOUS CONVERSATION:
 
@@ -80,57 +75,41 @@ provided document context and previous conversation only.
 IMPORTANT RULES:
 
 1. Carefully read ALL document sources.
-
 2. Use information directly supported by the documents.
-
 3. You may use previous conversation to understand references
    such as "it", "this", "that", "they", or follow-up questions.
-
 4. Previous conversation provides conversational context only.
    It must NOT be treated as additional factual evidence when
    answering questions about the documents.
-
 5. The document context is the authoritative source for
    document-grounded factual answers.
-
 6. You may combine information from multiple document sources.
-
 7. Do NOT require the exact wording of the user's question
    to appear in the documents.
-
 8. If the documents provide only PART of the answer, explain
    the supported information clearly and honestly.
-
 9. If the documents mention the topic but do not explain it
    in sufficient detail, state what the documents establish
    and clearly say that the detailed explanation is not provided.
-
 10. NEVER invent facts, definitions, mechanisms, examples,
     code, or explanations that are not supported by the documents.
-
 11. Do NOT use outside knowledge.
-
 12. Do NOT mention embeddings, retrieval, vector databases,
     compression, re-ranking, Multi-Query, Hybrid Search,
     or other internal RAG implementation details.
-
 13. Keep the answer concise and directly relevant.
-
 14. Only use the fallback message when the documents contain
     NO relevant information about the current question.
 
 Fallback message:
-
 "{FALLBACK_MESSAGE}"
 
 {history_section}
 
 CURRENT DOCUMENT CONTEXT:
-
 {context}
 
 CURRENT USER QUESTION:
-
 {question}
 
 FINAL ANSWER:
@@ -152,13 +131,12 @@ def extract_answer(response) -> str:
 
 def extract_sources(documents) -> List[Dict[str, Any]]:
     """
-    Extract unique source filename and page information.
+    Extract unique source filename/page information.
     """
 
     sources = []
 
     for doc in documents:
-
         metadata = doc.metadata or {}
 
         source = metadata.get("source", "Unknown")
@@ -170,7 +148,6 @@ def extract_sources(documents) -> List[Dict[str, Any]]:
         }
 
         if source_info not in sources:
-
             sources.append(source_info)
 
     return sources
@@ -181,56 +158,41 @@ def ask_rag(
     session_id: str = "default"
 ):
     """
-    Complete session-based conversational Advanced RAG pipeline.
+    Standard non-streaming RAG pipeline.
 
-    Question
-        ↓
-    Session Memory
-        ↓
-    Advanced Retrieval
-        ↓
-    Context Compression
-        ↓
-    Cross-Encoder Re-ranking
-        ↓
-    Document Context + Conversation History
-        ↓
-    Gemini
-        ↓
-    Save Conversation Turn
-        ↓
-    Answer + Sources
+    Returns:
+        {
+            "answer": str,
+            "sources": list
+        }
     """
 
     question = question.strip()
     session_id = session_id.strip()
 
     if not question:
-
-        raise ValueError(
-            "Question cannot be empty."
-        )
+        raise ValueError("Question cannot be empty.")
 
     if not session_id:
-
         session_id = "default"
 
-    # ----------------------------------------
-    # 1. Get Session Memory
-    # ----------------------------------------
+    # ---------------------------------------------------------
+    # Session memory
+    # ---------------------------------------------------------
 
-    memory = session_memory_manager.get_memory(
-        session_id
-    )
+    memory = session_memory_manager.get_memory(session_id)
 
-    # ----------------------------------------
-    # 2. Advanced Retrieval
-    # ----------------------------------------
+    # ---------------------------------------------------------
+    # Advanced document retrieval
+    # ---------------------------------------------------------
 
     documents = search_documents(question)
 
-    if not documents:
+    # ---------------------------------------------------------
+    # No relevant documents
+    # ---------------------------------------------------------
 
+    if not documents:
         answer = FALLBACK_MESSAGE
 
         memory.add_turn(
@@ -243,14 +205,13 @@ def ask_rag(
             "sources": []
         }
 
-    # ----------------------------------------
-    # 3. Build Document Context
-    # ----------------------------------------
+    # ---------------------------------------------------------
+    # Build document context
+    # ---------------------------------------------------------
 
     context = build_context(documents)
 
     if not context:
-
         answer = FALLBACK_MESSAGE
 
         memory.add_turn(
@@ -263,17 +224,15 @@ def ask_rag(
             "sources": extract_sources(documents)
         }
 
-    # ----------------------------------------
-    # 4. Get Previous Conversation
-    # ----------------------------------------
+    # ---------------------------------------------------------
+    # Previous conversation
+    # ---------------------------------------------------------
 
-    conversation_history = (
-        memory.get_history_text()
-    )
+    conversation_history = memory.get_history_text()
 
-    # ----------------------------------------
-    # 5. Create Prompt
-    # ----------------------------------------
+    # ---------------------------------------------------------
+    # Create grounded prompt
+    # ---------------------------------------------------------
 
     prompt = create_prompt(
         context=context,
@@ -281,23 +240,23 @@ def ask_rag(
         conversation_history=conversation_history
     )
 
-    # ----------------------------------------
-    # 6. Generate Answer
-    # ----------------------------------------
+    # ---------------------------------------------------------
+    # Generate complete Gemini response
+    # ---------------------------------------------------------
 
     response = llm.invoke(prompt)
 
     answer = extract_answer(response)
 
-    # ----------------------------------------
-    # 7. Extract Sources
-    # ----------------------------------------
+    # ---------------------------------------------------------
+    # Extract sources
+    # ---------------------------------------------------------
 
     sources = extract_sources(documents)
 
-    # ----------------------------------------
-    # 8. Save Current Conversation Turn
-    # ----------------------------------------
+    # ---------------------------------------------------------
+    # Save conversation
+    # ---------------------------------------------------------
 
     memory.add_turn(
         question=question,
@@ -310,39 +269,140 @@ def ask_rag(
     }
 
 
-def main():
+def stream_rag(
+    question: str,
+    session_id: str = "default"
+):
+    """
+    Streaming RAG pipeline.
 
-    print("=" * 70)
-    print("Enterprise RAG Platform")
-    print("Session-Based Conversational RAG")
-    print("=" * 70)
+    The response is yielded incrementally while the complete
+    answer is saved to the session memory after streaming ends.
+    """
 
-    session_id = input(
-        "\nEnter session ID: "
-    ).strip()
+    question = question.strip()
+    session_id = session_id.strip()
+
+    if not question:
+        raise ValueError("Question cannot be empty.")
 
     if not session_id:
-
         session_id = "default"
+
+    # ---------------------------------------------------------
+    # Session memory
+    # ---------------------------------------------------------
+
+    memory = session_memory_manager.get_memory(session_id)
+
+    # ---------------------------------------------------------
+    # Advanced document retrieval
+    # ---------------------------------------------------------
+
+    documents = search_documents(question)
+
+    # ---------------------------------------------------------
+    # No relevant documents
+    # ---------------------------------------------------------
+
+    if not documents:
+        answer = FALLBACK_MESSAGE
+
+        memory.add_turn(
+            question=question,
+            answer=answer
+        )
+
+        yield answer
+        return
+
+    # ---------------------------------------------------------
+    # Build document context
+    # ---------------------------------------------------------
+
+    context = build_context(documents)
+
+    if not context:
+        answer = FALLBACK_MESSAGE
+
+        memory.add_turn(
+            question=question,
+            answer=answer
+        )
+
+        yield answer
+        return
+
+    # ---------------------------------------------------------
+    # Previous conversation
+    # ---------------------------------------------------------
+
+    conversation_history = memory.get_history_text()
+
+    # ---------------------------------------------------------
+    # Create grounded prompt
+    # ---------------------------------------------------------
+
+    prompt = create_prompt(
+        context=context,
+        question=question,
+        conversation_history=conversation_history
+    )
+
+    # ---------------------------------------------------------
+    # Stream Gemini response
+    # ---------------------------------------------------------
+
+    answer_parts = []
+
+    for chunk in llm.stream(prompt):
+        text = getattr(chunk, "text", None)
+
+        if not text:
+            continue
+
+        answer_parts.append(text)
+
+        yield text
+
+    # ---------------------------------------------------------
+    # Save complete streamed response
+    # ---------------------------------------------------------
+
+    complete_answer = "".join(answer_parts).strip()
+
+    memory.add_turn(
+        question=question,
+        answer=complete_answer
+    )
+
+
+# -------------------------------------------------------------
+# CLI TEST
+# -------------------------------------------------------------
+
+if __name__ == "__main__":
+
+    print("=" * 60)
+    print("Enterprise RAG - Conversational Test")
+    print("=" * 60)
+
+    session_id = input("\nEnter session ID: ").strip()
+
+    if not session_id:
+        session_id = "default"
+
+    print("\nSession:", session_id)
+    print("\nType 'exit' to stop.\n")
 
     while True:
 
-        question = input(
-            "\nAsk a question (type 'exit' to quit): "
-        ).strip()
+        question = input("You: ").strip()
 
         if question.lower() == "exit":
-
-            print("\nConversation ended.")
-
             break
 
         if not question:
-
-            print(
-                "Question cannot be empty."
-            )
-
             continue
 
         try:
@@ -352,37 +412,19 @@ def main():
                 session_id=session_id
             )
 
-            print("\n" + "=" * 70)
-            print("Answer")
-            print("=" * 70)
-
+            print("\nAssistant:")
             print(result["answer"])
 
-            print("\n" + "=" * 70)
-            print("Sources")
-            print("=" * 70)
+            print("\nSources:")
 
-            if not result["sources"]:
+            for source in result["sources"]:
+                print(
+                    f"- {source['filename']} "
+                    f"(Page {source['page']})"
+                )
 
-                print("No sources found.")
-
-            else:
-
-                for source in result["sources"]:
-
-                    print(
-                        f"- {source['filename']} "
-                        f"(Page {source['page']})"
-                    )
+            print()
 
         except Exception as e:
 
-            print("\n" + "=" * 70)
-            print("RAG Error")
-            print("=" * 70)
-
-            print(str(e))
-
-
-if __name__ == "__main__":
-    main()
+            print("\nError:", e)
