@@ -1,7 +1,10 @@
+
 from typing import List
 from collections import defaultdict
+import re
 
 from app.retriever.hybrid_retriever import hybrid_search
+from app.retriever.bm25_retriever import BM25Retriever
 
 
 NUMBER_OF_QUERIES = 4
@@ -10,9 +13,8 @@ DEFAULT_TOP_K = 5
 
 def generate_queries(question: str) -> List[str]:
     """
-    Generate local alternative search queries without using an LLM.
-
-    This avoids consuming Gemini API quota during retrieval.
+    Generate alternative search queries locally.
+    No LLM API calls are required.
     """
 
     question = " ".join(question.split()).strip()
@@ -27,35 +29,25 @@ def generate_queries(question: str) -> List[str]:
         f"Technical details and important points about {question}",
     ]
 
-    # Remove duplicates while preserving order
     unique_queries = []
 
     for query in queries:
-        query = query.strip()
-
-        if query and query not in unique_queries:
+        if query not in unique_queries:
             unique_queries.append(query)
 
     return unique_queries[:NUMBER_OF_QUERIES]
 
 
-def document_key(document):
+def normalize_content(content: str) -> str:
     """
-    Create a unique identifier for a retrieved document chunk.
+    Normalize document content for duplicate detection.
     """
 
-    metadata = document.metadata or {}
-
-    source = metadata.get("source", "")
-    page = metadata.get("page", "")
-
-    content = document.page_content.strip()
-
-    return (
-        str(source),
-        str(page),
-        content
-    )
+    return re.sub(
+        r"\s+",
+        " ",
+        content.lower()
+    ).strip()
 
 
 def multi_query_search(
@@ -63,27 +55,29 @@ def multi_query_search(
     k: int = DEFAULT_TOP_K
 ):
     """
-    Perform Multi-Query Retrieval using local query expansion.
+    Multi-Query Hybrid Retrieval.
 
     Flow:
-
-    User Question
-        ↓
-    Local Query Expansion
-        ↓
-    Hybrid Search
-        ↓
-    Deduplication
-        ↓
-    Rank Fusion
-        ↓
-    Top K Documents
+        User Question
+            ↓
+        Local Query Expansion
+            ↓
+        Dense + BM25 Hybrid Search
+            ↓
+        Duplicate Removal
+            ↓
+        Reciprocal Rank Fusion
+            ↓
+        Final Top-K Documents
     """
 
     queries = generate_queries(question)
 
     if not queries:
         return []
+
+    # Build the BM25 index only once for this search.
+    bm25_retriever = BM25Retriever()
 
     document_scores = defaultdict(float)
     document_objects = {}
@@ -92,21 +86,27 @@ def multi_query_search(
 
         documents = hybrid_search(
             query=query,
-            k=k
+            k=k,
+            bm25_retriever=bm25_retriever
         )
 
-        for rank, document in enumerate(documents):
+        for rank, document in enumerate(documents, start=1):
 
-            key = document_key(document)
+            # Merge exact duplicate content even when it appears
+            # in different PDF files.
+            key = normalize_content(document.page_content)
 
-            # Higher score for higher-ranked documents
-            rank_score = k - rank
+            if not key:
+                continue
+
+            rank_score = 1.0 / (60 + rank)
 
             document_scores[key] += rank_score
 
-            document_objects[key] = document
+            # Preserve the first document's source metadata.
+            if key not in document_objects:
+                document_objects[key] = document
 
-    # Sort documents by accumulated score
     ranked_documents = sorted(
         document_scores.items(),
         key=lambda item: item[1],
@@ -122,7 +122,10 @@ def multi_query_search(
         if document.metadata is None:
             document.metadata = {}
 
-        document.metadata["multi_query_score"] = score
+        document.metadata["multi_query_score"] = round(
+            float(score),
+            6
+        )
 
         results.append(document)
 
@@ -136,7 +139,7 @@ def main():
 
     print("=" * 70)
     print("Enterprise RAG Platform")
-    print("Advanced RAG - Multi-Query Retrieval")
+    print("Advanced RAG - Multi-Query Hybrid Retrieval")
     print("=" * 70)
 
     question = input("\nEnter your question: ").strip()
@@ -145,34 +148,19 @@ def main():
         print("Question cannot be empty.")
         return
 
-    # ---------------------------------------------------------
-    # Generate local queries
-    # ---------------------------------------------------------
-
-    print("\nGenerating local alternative queries...")
+    print("\nGenerating alternative queries...")
 
     queries = generate_queries(question)
-
-    print("\nGenerated Queries")
-    print("-" * 70)
 
     for index, query in enumerate(queries, start=1):
         print(f"{index}. {query}")
 
-    # ---------------------------------------------------------
-    # Hybrid Search
-    # ---------------------------------------------------------
-
-    print("\nRunning Hybrid Search for each query...")
+    print("\nRunning Multi-Query Hybrid Search...")
 
     documents = multi_query_search(
         question=question,
         k=DEFAULT_TOP_K
     )
-
-    # ---------------------------------------------------------
-    # Display results
-    # ---------------------------------------------------------
 
     print("\n" + "=" * 70)
     print("Final Ranked Documents")
@@ -187,19 +175,11 @@ def main():
         print(f"\nResult {index}")
         print("-" * 50)
 
+        print("Source:", metadata.get("source", "Unknown"))
+        print("Page:", metadata.get("page", "Unknown"))
         print(
-            f"Source : "
-            f"{metadata.get('source', 'Unknown')}"
-        )
-
-        print(
-            f"Page   : "
-            f"{metadata.get('page', 'Unknown')}"
-        )
-
-        print(
-            f"Score  : "
-            f"{metadata.get('multi_query_score', 0)}"
+            "Score:",
+            metadata.get("multi_query_score", 0)
         )
 
         print("\nContent:")

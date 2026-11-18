@@ -1,0 +1,43 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment secrets
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Runtime data
+chroma_storage/
+uploaded_documents/
+logs/
+
+# HuggingFace cache
+.cache/
+.cache/huggingface/
+
+# Testing/cache
+.pytest_cache/
+.mypy_cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Documentation/build artifacts
+*.log
+dist/
+build/
+*.egg-info/
