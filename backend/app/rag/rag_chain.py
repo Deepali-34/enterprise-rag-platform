@@ -1,3 +1,4 @@
+from app.utils.logger import logger
 from typing import List, Dict, Any
 
 from app.retriever.retriever import search_documents
@@ -269,6 +270,7 @@ def ask_rag(
     }
 
 
+
 def stream_rag(
     question: str,
     session_id: str = "default"
@@ -276,8 +278,8 @@ def stream_rag(
     """
     Streaming RAG pipeline.
 
-    The response is yielded incrementally while the complete
-    answer is saved to the session memory after streaming ends.
+    Handles Gemini generation failures gracefully and saves
+    conversation memory only after successful generation.
     """
 
     question = question.strip()
@@ -289,22 +291,13 @@ def stream_rag(
     if not session_id:
         session_id = "default"
 
-    # ---------------------------------------------------------
     # Session memory
-    # ---------------------------------------------------------
-
     memory = session_memory_manager.get_memory(session_id)
 
-    # ---------------------------------------------------------
-    # Advanced document retrieval
-    # ---------------------------------------------------------
-
+    # Retrieve relevant documents
     documents = search_documents(question)
 
-    # ---------------------------------------------------------
-    # No relevant documents
-    # ---------------------------------------------------------
-
+    # Handle missing documents
     if not documents:
         answer = FALLBACK_MESSAGE
 
@@ -316,10 +309,7 @@ def stream_rag(
         yield answer
         return
 
-    # ---------------------------------------------------------
-    # Build document context
-    # ---------------------------------------------------------
-
+    # Build context
     context = build_context(documents)
 
     if not context:
@@ -333,48 +323,68 @@ def stream_rag(
         yield answer
         return
 
-    # ---------------------------------------------------------
-    # Previous conversation
-    # ---------------------------------------------------------
-
+    # Conversation history
     conversation_history = memory.get_history_text()
 
-    # ---------------------------------------------------------
     # Create grounded prompt
-    # ---------------------------------------------------------
-
     prompt = create_prompt(
         context=context,
         question=question,
         conversation_history=conversation_history
     )
 
-    # ---------------------------------------------------------
-    # Stream Gemini response
-    # ---------------------------------------------------------
-
+    # Generate streamed response
     answer_parts = []
 
-    for chunk in llm.stream(prompt):
-        text = getattr(chunk, "text", None)
+    try:
+        for chunk in llm.stream(prompt):
+            chunk_text = getattr(chunk, "text", None)
 
-        if not text:
-            continue
+            if not chunk_text:
+                continue
 
-        answer_parts.append(text)
+            answer_parts.append(chunk_text)
+            yield chunk_text
 
-        yield text
+    except Exception as e:
+        logger.error(
+            "Gemini streaming generation failed",
+            exc_info=True
+        )
 
-    # ---------------------------------------------------------
-    # Save complete streamed response
-    # ---------------------------------------------------------
+        status_code = getattr(e, "status_code", None)
+        error_code = getattr(e, "code", None)
+        error_message = str(e)
 
+        unavailable = (
+            status_code == 503
+            or error_code == 503
+            or "503" in error_message
+            or "UNAVAILABLE" in error_message.upper()
+        )
+
+        if unavailable:
+            message = (
+                "AI service is temporarily unavailable. "
+                "Please try again later."
+            )
+        else:
+            message = (
+                "An error occurred while generating the answer. "
+                "Please try again."
+            )
+
+        yield f"\n\n[Error: {message}]"
+        return
+
+    # Save only a successfully completed answer
     complete_answer = "".join(answer_parts).strip()
 
-    memory.add_turn(
-        question=question,
-        answer=complete_answer
-    )
+    if complete_answer:
+        memory.add_turn(
+            question=question,
+            answer=complete_answer
+        )
 
 
 # -------------------------------------------------------------
