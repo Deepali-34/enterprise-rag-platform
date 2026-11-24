@@ -1,0 +1,116 @@
+{
+    "evaluation_type": "Multi-document retrieval evaluation",
+    "top_k": 3,
+    "metric_notes": {
+        "precision_at_3": "Fraction of top-three chunks attributed to an expected source. This is a source-label proxy, not human-judged chunk relevance.",
+        "source_recall_at_3": "Fraction of expected source documents represented in the top three.",
+        "mean_reciprocal_rank": "Average reciprocal rank of the first chunk from an expected source.",
+        "duplicate_handling": "API_Test_RAG_Guide.pdf is normalized to RAG_LLM_Architecture_Guide.pdf because the files are identical."
+    },
+    "summary": {
+        "total_test_cases": 6,
+        "successful_test_cases": 6,
+        "average_precision_at_3": 0.7778,
+        "average_source_recall_at_3": 1.0,
+        "mean_reciprocal_rank": 1.0,
+        "average_latency_seconds": 0.838
+    },
+    "results": [
+        {
+            "query": "What are the basic features of Java and what are the differences between JDK, JRE and JVM?",
+            "expected_sources": [
+                "JAVA SYLLABUS.pdf"
+            ],
+            "retrieved_chunks": [
+                "JAVA SYLLABUS.pdf",
+                "JAVA SYLLABUS.pdf",
+                "JAVA SYLLABUS.pdf"
+            ],
+            "relevant_chunks": 3,
+            "precision_at_3": 1.0,
+            "source_recall_at_3": 1.0,
+            "reciprocal_rank": 1.0,
+            "latency_seconds": 1.824
+        },
+        {
+            "query": "What Java programming exercises involve functions, loops, conditionals and calculating averages?",
+            "expected_sources": [
+                "Java Exercise 1.pdf"
+            ],
+            "retrieved_chunks": [
+                "Java Exercise 1.pdf",
+                "JAVA SYLLABUS.pdf",
+                "Java Lecture 10.pdf"
+            ],
+            "relevant_chunks": 1,
+            "precision_at_3": 0.3333,
+            "source_recall_at_3": 1.0,
+            "reciprocal_rank": 1.0,
+            "latency_seconds": 0.748
+        },
+        {
+            "query": "How are one-dimensional arrays created, initialized and traversed in Java?",
+            "expected_sources": [
+                "Java Lecture 10.pdf"
+            ],
+            "retrieved_chunks": [
+                "Java Lecture 10.pdf",
+                "Java Lecture 11.pdf",
+                "Java Lecture 10.pdf"
+            ],
+            "relevant_chunks": 2,
+            "precision_at_3": 0.6667,
+            "source_recall_at_3": 1.0,
+            "reciprocal_rank": 1.0,
+            "latency_seconds": 0.832
+        },
+        {
+            "query": "How can a two-dimensional array or matrix be created, populated and printed in Java?",
+            "expected_sources": [
+                "Java Lecture 11.pdf"
+            ],
+            "retrieved_chunks": [
+                "Java Lecture 11.pdf",
+                "Java Lecture 11.pdf",
+                "Java Lecture 11.pdf"
+            ],
+            "relevant_chunks": 3,
+            "precision_at_3": 1.0,
+            "source_recall_at_3": 1.0,
+            "reciprocal_rank": 1.0,
+            "latency_seconds": 0.655
+        },
+        {
+            "query": "Explain the RAG architecture and how embeddings, vector search, BM25 and reranking support retrieval.",
+            "expected_sources": [
+                "RAG_LLM_Architecture_Guide.pdf"
+            ],
+            "retrieved_chunks": [
+                "RAG_LLM_Architecture_Guide.pdf",
+                "RAG_LLM_Architecture_Guide.pdf",
+                "RAG_LLM_Architecture_Guide.pdf"
+            ],
+            "relevant_chunks": 3,
+            "precision_at_3": 1.0,
+            "source_recall_at_3": 1.0,
+            "reciprocal_rank": 1.0,
+            "latency_seconds": 0.472
+        },
+        {
+            "query": "What instructions are given for the Internetworking Essentials practical examination?",
+            "expected_sources": [
+                "big data.pdf"
+            ],
+            "retrieved_chunks": [
+                "big data.pdf",
+                "RAG_LLM_Architecture_Guide.pdf",
+                "big data.pdf"
+            ],
+            "relevant_chunks": 2,
+            "precision_at_3": 0.6667,
+            "source_recall_at_3": 1.0,
+            "reciprocal_rank": 1.0,
+            "latency_seconds": 0.497
+        }
+    ]
+}
