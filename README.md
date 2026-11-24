@@ -1,214 +1,193 @@
 # Enterprise RAG Platform
 
-An enterprise-grade AI Knowledge Platform built using **FastAPI, LangChain, ChromaDB, Google Gemini, and Retrieval-Augmented Generation (RAG)**.
+An AI-powered document question-answering platform built using **FastAPI, LangChain, ChromaDB, Google Gemini, and Retrieval-Augmented Generation (RAG)**.
 
-The platform enables users to upload PDF documents, create vector embeddings, retrieve relevant document chunks, and generate context-aware answers using a Large Language Model (LLM) with source citations.
+Upload PDF documents, index their content, retrieve relevant information using advanced retrieval techniques, and generate context-aware answers with source references.
 
----
+## Features
 
-# Features
+### Phase 1 – Core RAG
+- PDF upload and document ingestion
+- Automatic text extraction and chunking
+- Hugging Face embedding generation
+- ChromaDB vector storage
+- Semantic similarity search
+- Gemini-powered question answering
+- Source citations and metadata enrichment
+- Document listing and deletion APIs
+- Production logging
 
-## ✅ Phase 1 – Core Enterprise RAG (Completed)
+### Phase 2 – Advanced RAG and Reliability
+- Hybrid retrieval: dense vector and BM25 search
+- Multi-query retrieval
+- Context compression
+- Cross-encoder reranking
+- Streaming question-answering endpoint
+- Retrieval evaluation pipeline
+- API and reliability test suite
+- Docker-based backend deployment
+- Persistent ChromaDB storage
+- Gemini quota and service-error handling
 
-- PDF Document Upload & Indexing
-- Automatic Text Chunking
-- Vector Embedding Generation
-- ChromaDB Vector Database Integration
-- Semantic Similarity Search
-- Retrieval-Augmented Generation (RAG)
-- Google Gemini LLM Integration
-- FastAPI REST APIs
-- Document Management APIs
-- Source Citation Support
-- Metadata Enrichment
-- Production Logging
-- Swagger API Documentation
+## Tech Stack
 
----
+| Component | Technology |
+|---|---|
+| Language | Python |
+| API | FastAPI |
+| RAG Framework | LangChain |
+| LLM | Google Gemini |
+| Embeddings | Sentence Transformers |
+| Vector Database | ChromaDB |
+| Keyword Retrieval | BM25 |
+| Reranking | Cross-Encoder |
+| Testing | Pytest |
+| Containerization | Docker |
+| API Documentation | Swagger UI |
 
-# Tech Stack
+## Architecture
 
-### Backend
-- Python
-- FastAPI
-- LangChain
+```text
+PDF Upload
+    |
+    v
+Document Loader
+    |
+    v
+Text Chunking
+    |
+    v
+Embedding Generation
+    |
+    v
+ChromaDB + BM25
+    |
+    v
+Multi-Query Retrieval
+    |
+    v
+Context Compression
+    |
+    v
+Cross-Encoder Reranking
+    |
+    v
+Gemini LLM
+    |
+    v
+Answer + Source References
+```
 
-### AI & LLM
-- Google Gemini
-- Hugging Face Embeddings
-- sentence-transformers/all-MiniLM-L6-v2
-
-### Vector Database
-- ChromaDB
-
-### Document Processing
-- LangChain PDF Loader
-- Recursive Character Text Splitter
-
-### Development Tools
-- Swagger UI
-- Uvicorn
-- Git
-- GitHub
-
----
-
-# Current API Endpoints
+## API Endpoints
 
 | Method | Endpoint | Description |
-|---------|----------|-------------|
-| GET | `/` | API Health Check |
-| POST | `/upload` | Upload and index PDF documents |
-| POST | `/ask` | Ask questions from uploaded documents |
+|---|---|---|
+| GET | `/` | API health check |
+| POST | `/upload` | Upload and index a PDF |
+| POST | `/ask` | Generate an answer with sources |
+| POST | `/ask/stream` | Stream a generated answer |
 | GET | `/documents` | List indexed documents |
-| DELETE | `/documents/{filename}` | Delete indexed documents |
+| DELETE | `/documents/{filename}` | Delete a document and its indexed chunks |
 
----
+## Retrieval Evaluation
 
-# Project Architecture
+The initial retrieval benchmark contains six queries.
 
+| Metric | Result |
+|---|---:|
+| Successful queries | 6/6 |
+| Average Precision@3 | 0.7778 |
+| Source Recall@3 | 1.0000 |
+| Mean Reciprocal Rank | 1.0000 |
+| Average Retrieval Latency | 0.838 seconds |
+
+These are preliminary source-level evaluation results, not human-judged semantic chunk relevance.
+
+Detailed report: `docs/RETRIEVAL_EVALUATION.md`
+
+## Testing
+
+Run from the backend directory:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
 ```
-Enterprise RAG Platform
-│
-├── FastAPI REST API
-├── PDF Upload Service
-├── Document Loader
-├── Text Chunking
-├── Embedding Generator
-├── ChromaDB Vector Store
-├── Semantic Retriever
-├── Gemini LLM
-└── Source Citation Engine
-```
 
----
+Latest recorded result: **22 passed, 2 non-blocking warnings**.
 
-# Project Structure
+## Project Structure
 
-```
-backend/
-│
-├── app/
-│   ├── api/
-│   ├── embeddings/
-│   ├── llm/
-│   ├── loaders/
-│   ├── models/
-│   ├── pipelines/
-│   ├── preprocessing/
-│   ├── rag/
-│   ├── retriever/
-│   ├── uploader/
-│   ├── utils/
-│   └── vectordb/
-│
-├── sample_documents/
-├── tests/
-├── requirements.txt
+```text
+enterprise-rag-platform/
+|
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── embeddings/
+│   │   ├── llm/
+│   │   ├── loaders/
+│   │   ├── models/
+│   │   ├── pipelines/
+│   │   ├── preprocessing/
+│   │   ├── rag/
+│   │   ├── retriever/
+│   │   ├── uploader/
+│   │   ├── utils/
+│   │   └── vectordb/
+│   ├── evaluation/
+│   ├── tests/
+│   ├── sample_documents/
+│   ├── requirements.txt
+│   └── Dockerfile
+|
+├── docs/
+│   ├── API_DOCUMENTATION.md
+│   ├── RETRIEVAL_EVALUATION.md
+│   ├── ADVANCED_RAG_ARCHITECTURE.md
+│   └── PROJECT_OVERVIEW.md
+|
 └── README.md
 ```
 
----
+## Local Setup
 
-# Workflow
+```powershell
+cd backend
 
-```
-Upload PDF
-      │
-      ▼
-PDF Loader
-      │
-      ▼
-Text Chunking
-      │
-      ▼
-Embedding Generation
-      │
-      ▼
-ChromaDB Storage
-      │
-      ▼
-User Question
-      │
-      ▼
-Semantic Retrieval
-      │
-      ▼
-Gemini LLM
-      │
-      ▼
-Answer + Source Citations
-```
+python -m venv .venv
 
----
-
-# Current Progress
-
-## ✅ Phase 1 — Core Enterprise RAG (Completed)
-
-- Document Upload Pipeline
-- Vector Database Integration
-- Semantic Retrieval
-- RAG Question Answering
-- Document Management APIs
-- Metadata Enrichment
-- Source Citations
-- Production Logging
-
----
-
-## 🚧 Phase 2 — Advanced RAG (In Progress)
-
-Planned Features:
-
-- Hybrid Search (Dense + BM25)
-- Multi-Query Retrieval
-- Context Compression
-- Re-ranking
-- Conversational Memory
-- Streaming Responses
-- Evaluation Pipeline
-
----
-
-# Future Enhancements
-
-- LangGraph Agentic RAG
-- Authentication & Authorization
-- Docker Deployment
-- CI/CD Pipeline
-- Cloud Deployment (AWS/GCP/Azure)
-- Monitoring & Observability
-- Frontend Dashboard (Streamlit/React)
-
----
-
-# Installation
-
-```bash
-git clone https://github.com/Deepali-34/enterprise-rag-platform.git
-
-cd enterprise-rag-platform/backend
+.\.venv\Scripts\Activate.ps1
 
 pip install -r requirements.txt
 
 uvicorn app.api.main:app --reload
 ```
 
----
+Configure the required Gemini API key in your environment before using generation endpoints.
 
-# API Documentation
+## API Documentation
 
-After starting the server:
+Once the server is running:
 
-```
-http://127.0.0.1:8000/docs
-```
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
 
----
+See `docs/API_DOCUMENTATION.md` for endpoint details.
 
-# Project Status
+## Project Status
 
-**Current Version:** Phase 1 Completed ✅
+**Version:** 1.0.0
 
-**Next Milestone:** Advanced Enterprise RAG Pipeline 🚀
+- Phase 1 – Core RAG: Completed
+- Phase 2 – Advanced RAG, evaluation and reliability: Technical verification completed
+- Live Gemini generation: Final confirmation pending API quota availability
+- Phase 3 – Agentic AI: Planned
+
+## Future Enhancements
+
+- LangGraph-based Agentic RAG
+- Authentication and authorization
+- CI/CD automation
+- Cloud deployment
+- Monitoring and observability
+- React or Streamlit frontend
