@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException
 from pathlib import Path
-import os
 
 from app.vectordb.chroma_db import (
     list_documents,
@@ -16,7 +15,6 @@ UPLOAD_FOLDER = "sample_documents"
 
 @router.get("/documents")
 def get_documents():
-
     return {
         "documents": list_documents()
     }
@@ -25,20 +23,33 @@ def get_documents():
 @router.delete("/documents/{filename}")
 def remove_document(filename: str):
 
-    file_path = Path(UPLOAD_FOLDER) / filename
+    # Reject path traversal and invalid document filenames.
+    safe_filename = filename.replace("\\", "/")
 
-    if not file_path.exists():
+    if (
+        Path(safe_filename).name != safe_filename
+        or safe_filename in {"", ".", ".."}
+        or Path(safe_filename).suffix.lower() != ".pdf"
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid document filename."
+        )
+
+    file_path = Path(UPLOAD_FOLDER) / safe_filename
+
+    if not file_path.is_file():
         raise HTTPException(
             status_code=404,
             detail="Document not found."
         )
 
-    deleted_chunks = delete_document(filename)
+    deleted_chunks = delete_document(safe_filename)
 
-    os.remove(file_path)
+    file_path.unlink()
 
     return {
         "message": "Document deleted successfully.",
-        "filename": filename,
+        "filename": safe_filename,
         "chunks_deleted": deleted_chunks
     }

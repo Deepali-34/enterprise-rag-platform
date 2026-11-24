@@ -1,3 +1,4 @@
+
 from pathlib import Path
 from collections import Counter
 
@@ -16,9 +17,18 @@ embedding_model = HuggingFaceEmbeddings(
 PERSIST_DIRECTORY = "chroma_storage"
 
 
+def _get_source_filename(source: str) -> str:
+    """
+    Extract a filename consistently from Windows or Linux paths.
+    """
+
+    normalized_path = str(source).replace("\\", "/")
+    return normalized_path.rsplit("/", 1)[-1]
+
+
 def get_vector_db():
     """
-    Open existing Chroma database.
+    Open the existing persistent Chroma database.
     """
 
     return Chroma(
@@ -49,7 +59,7 @@ def create_vector_database():
 
 def add_documents(documents):
     """
-    Add new documents to existing Chroma database.
+    Add new documents to the existing Chroma database.
     """
 
     chunks = split_documents(documents)
@@ -92,7 +102,7 @@ def get_all_documents():
 
 def list_documents():
     """
-    Return all indexed documents with chunk counts.
+    Return indexed documents with normalized filenames and chunk counts.
     """
 
     db = get_vector_db()
@@ -106,7 +116,10 @@ def list_documents():
 
     for metadata in data["metadatas"]:
         if metadata and "source" in metadata:
-            filenames.append(Path(metadata["source"]).name)
+            filename = _get_source_filename(metadata["source"])
+
+            if filename:
+                filenames.append(filename)
 
     counts = Counter(filenames)
 
@@ -121,7 +134,8 @@ def list_documents():
 
 def delete_document(filename):
     """
-    Delete all chunks belonging to a document.
+    Delete all ChromaDB chunks belonging to a document.
+    Supports Windows and Linux source paths.
     """
 
     db = get_vector_db()
@@ -133,9 +147,16 @@ def delete_document(filename):
 
     ids_to_delete = []
 
-    for doc_id, metadata in zip(data["ids"], data["metadatas"]):
+    for doc_id, metadata in zip(
+        data["ids"],
+        data["metadatas"]
+    ):
         if metadata and "source" in metadata:
-            if Path(metadata["source"]).name == filename:
+            source_filename = _get_source_filename(
+                metadata["source"]
+            )
+
+            if source_filename == filename:
                 ids_to_delete.append(doc_id)
 
     if ids_to_delete:
