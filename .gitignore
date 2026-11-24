@@ -52,3 +52,26 @@ chroma_db/
 # ChromaDB
 chroma_db/
 backend/chroma_storage/
+
+# Nested Python environments and caches
+**/.venv/
+**/venv/
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
+
+# Local environment configuration
+**/.env
+**/.env.*
+!**/.env.example
+
+# Local databases and generated data
+**/chroma_storage/
+**/chroma_db/
+**/uploaded_documents/
+**/logs/
+**/.cache/
+
+# Private sample documents
+backend/sample_documents/*.pdf
+!backend/sample_documents/RAG_LLM_Architecture_Guide.pdf

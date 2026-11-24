@@ -1,10 +1,12 @@
-# Virtual environment
+
+# Virtual environments
 .venv/
 venv/
 env/
 
 # Environment secrets
 .env
+.env.*
 
 # Python cache
 __pycache__/
@@ -19,24 +21,27 @@ __pycache__/
 .vscode/
 .idea/
 
-# Runtime data
+# Runtime data and databases
 chroma_storage/
 uploaded_documents/
+sample_documents/
+data/
 logs/
 
 # HuggingFace cache
 .cache/
 .cache/huggingface/
 
-# Testing/cache
+# Testing and type-checking cache
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
 
 # OS files
 .DS_Store
 Thumbs.db
 
-# Documentation/build artifacts
+# Documentation and build artifacts
 *.log
 dist/
 build/
