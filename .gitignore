@@ -75,3 +75,7 @@ backend/chroma_storage/
 # Private sample documents
 backend/sample_documents/*.pdf
 !backend/sample_documents/RAG_LLM_Architecture_Guide.pdf
+backend/app/api/main.py.backup
+backend/app/rag/rag_chain.py.backup
+backend/phase2_test.pdf
+backend/sample_documents/
