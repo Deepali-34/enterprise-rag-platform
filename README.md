@@ -1,3 +1,193 @@
+# Enterprise RAG Platform
 
-Action: create_file({"file_text":"# Enterprise RAG Platform: README Redesign\n\n## What it is\nA visually striking, artistic redesign of the existing Enterprise RAG Platform README, delivered as a single README.md file ready to drop into the GitHub repository.\nAll existing facts stay intact; only the presentation, ordering and visual treatment change.\n\n## Who it's for\n- The project owner, who wants a README that stands out on GitHub and in a portfolio.\n- Recruiters, reviewers and developers who land on the repo and decide in seconds whether to read further.\n\n## Core features and experience\nThe questions were skipped, so these defaults apply:\n\n- **Format:** one styled README.md for GitHub. No showcase web page is built.\n- **Mood:** dark, neon tech, with glowing accents, a terminal feel and an animated header.\n- **Content:** every fact is kept exactly as written: metrics, endpoints, test result (\"22 passed, 2 non-blocking warnings\"), project status, and the caveat that the evaluation results are preliminary. Nothing is invented or inflated.\n- **Wording:** unchanged apart from short section taglines and headings added for visual rhythm.\n- **Repo links:** no GitHub username or repo name was given, so badges are static (no live stars, forks or build status) and no repo-specific links are added. Dynamic badges can be added later once the repo name is known.\n- **GitHub-safe only:** the design uses only what GitHub actually renders (images, badges, tables, collapsible sections, diagrams). No custom styles or scripts that GitHub would strip.\n- **External images:** the animated header, typing line and badges load from free public image services. If one of those services is down, that image will not show, but the text remains readable.\n\n## Phase 1: what gets built now\nA single redesigned README.md containing:\n\n1. **Hero header:** animated gradient banner with the project name, an animated typing tagline, and a row of tech badges (Python, FastAPI, LangChain, Gemini, ChromaDB, Docker, Pytest) plus version and test-status badges.\n2. **Quick navigation bar:** jump links to every section.\n3. **Features:** Phase 1 and Phase 2 shown side by side as two icon-led columns instead of plain bullet lists.\n4. **Architecture:** the pipeline redrawn as a coloured flow diagram (PDF Upload through to Answer + Source References), with the original text diagram kept in a collapsible block as a fallback.\n5. **Tech stack:** the table restyled with a logo badge for each technology.\n6. **API endpoints:** table with colour-coded method badges (GET, POST, DELETE).\n7. **Retrieval evaluation:** the five metrics presented as a scorecard, with the \"preliminary, source-level\" note and the link to the detailed report kept visible.\n8. **Testing, local setup and API docs:** clean command blocks; the project structure tree placed in a collapsible section to keep the page short.\n9. **Project status:** a visual roadmap showing Phase 1 completed, Phase 2 technically verified, live Gemini confirmation pending quota, and Phase 3 planned.\n10. **Future enhancements:** a checklist-style roadmap.\n11. **Footer:** matching animated closing banner.\n\nNot included now: a showcase web page, rewritten body copy, a licence or contributing section (none exists in the original), and live repo badges.\n","lint_rule_config":{"directive":"Fix these {blocking} blocking lint error(s) before continuing.","enabled":true,"rules":[{"id":"EB001","mode":"on"},{"id":"EB002","mode":"on"},{"id":"EB004","mode":"on"}]},"path":"/app/plan/plan.md","run_lint":true})
-Observation: Create successful: /app/plan/plan.md
+An AI-powered document question-answering platform built using **FastAPI, LangChain, ChromaDB, Google Gemini, and Retrieval-Augmented Generation (RAG)**.
+
+Upload PDF documents, index their content, retrieve relevant information using advanced retrieval techniques, and generate context-aware answers with source references.
+
+## Features
+
+### Phase 1 – Core RAG
+- PDF upload and document ingestion
+- Automatic text extraction and chunking
+- Hugging Face embedding generation
+- ChromaDB vector storage
+- Semantic similarity search
+- Gemini-powered question answering
+- Source citations and metadata enrichment
+- Document listing and deletion APIs
+- Production logging
+
+### Phase 2 – Advanced RAG and Reliability
+- Hybrid retrieval: dense vector and BM25 search
+- Multi-query retrieval
+- Context compression
+- Cross-encoder reranking
+- Streaming question-answering endpoint
+- Retrieval evaluation pipeline
+- API and reliability test suite
+- Docker-based backend deployment
+- Persistent ChromaDB storage
+- Gemini quota and service-error handling
+
+## Tech Stack
+
+| Component | Technology |
+|---|---|
+| Language | Python |
+| API | FastAPI |
+| RAG Framework | LangChain |
+| LLM | Google Gemini |
+| Embeddings | Sentence Transformers |
+| Vector Database | ChromaDB |
+| Keyword Retrieval | BM25 |
+| Reranking | Cross-Encoder |
+| Testing | Pytest |
+| Containerization | Docker |
+| API Documentation | Swagger UI |
+
+## Architecture
+
+```text
+PDF Upload
+    |
+    v
+Document Loader
+    |
+    v
+Text Chunking
+    |
+    v
+Embedding Generation
+    |
+    v
+ChromaDB + BM25
+    |
+    v
+Multi-Query Retrieval
+    |
+    v
+Context Compression
+    |
+    v
+Cross-Encoder Reranking
+    |
+    v
+Gemini LLM
+    |
+    v
+Answer + Source References
+```
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/` | API health check |
+| POST | `/upload` | Upload and index a PDF |
+| POST | `/ask` | Generate an answer with sources |
+| POST | `/ask/stream` | Stream a generated answer |
+| GET | `/documents` | List indexed documents |
+| DELETE | `/documents/{filename}` | Delete a document and its indexed chunks |
+
+## Retrieval Evaluation
+
+The initial retrieval benchmark contains six queries.
+
+| Metric | Result |
+|---|---:|
+| Successful queries | 6/6 |
+| Average Precision@3 | 0.7778 |
+| Source Recall@3 | 1.0000 |
+| Mean Reciprocal Rank | 1.0000 |
+| Average Retrieval Latency | 0.838 seconds |
+
+These are preliminary source-level evaluation results, not human-judged semantic chunk relevance.
+
+Detailed report: `docs/RETRIEVAL_EVALUATION.md`
+
+## Testing
+
+Run from the backend directory:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+Latest recorded result: **22 passed, 2 non-blocking warnings**.
+
+## Project Structure
+
+```text
+enterprise-rag-platform/
+|
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── embeddings/
+│   │   ├── llm/
+│   │   ├── loaders/
+│   │   ├── models/
+│   │   ├── pipelines/
+│   │   ├── preprocessing/
+│   │   ├── rag/
+│   │   ├── retriever/
+│   │   ├── uploader/
+│   │   ├── utils/
+│   │   └── vectordb/
+│   ├── evaluation/
+│   ├── tests/
+│   ├── sample_documents/
+│   ├── requirements.txt
+│   └── Dockerfile
+|
+├── docs/
+│   ├── API_DOCUMENTATION.md
+│   ├── RETRIEVAL_EVALUATION.md
+│   ├── ADVANCED_RAG_ARCHITECTURE.md
+│   └── PROJECT_OVERVIEW.md
+|
+└── README.md
+```
+
+## Local Setup
+
+```powershell
+cd backend
+
+python -m venv .venv
+
+.\.venv\Scripts\Activate.ps1
+
+pip install -r requirements.txt
+
+uvicorn app.api.main:app --reload
+```
+
+Configure the required Gemini API key in your environment before using generation endpoints.
+
+## API Documentation
+
+Once the server is running:
+
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+See `docs/API_DOCUMENTATION.md` for endpoint details.
+
+## Project Status
+
+**Version:** 1.0.0
+
+- Phase 1 – Core RAG: Completed
+- Phase 2 – Advanced RAG, evaluation and reliability: Technical verification completed
+- Live Gemini generation: Final confirmation pending API quota availability
+- Phase 3 – Agentic AI: Planned
+
+## Future Enhancements
+
+- LangGraph-based Agentic RAG
+- Authentication and authorization
+- CI/CD automation
+- Cloud deployment
+- Monitoring and observability
+- React or Streamlit frontend
